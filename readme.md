@@ -30,6 +30,12 @@ After the installation done You need to write below command to run your applicat
 ```bash
 npm start 
 ```
+Open Second terminal and Run below command in case you want to make changes to any typescript Files
+```bash
+tsc -w
+```
+This Command will compile all your TS file in watch mode 
+
 
 It will start your project on port **3000** 
 Now you can test all the url with the help of postman
