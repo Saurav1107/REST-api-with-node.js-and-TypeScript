@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
 function connect() {
-    const dbURI = "mongodb://localhost/Grocery";
+    const dbURI = "mongodb://localhost/CheckList";
     return mongoose_1.default.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true }).then(() => {
         console.log("Connected to DB...!!!!");
     }).catch((error) => {

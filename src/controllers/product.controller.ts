@@ -1,54 +1,67 @@
 import { RequestHandler } from "express";
-import CheckList from "../models/checkList.model";
+import Product from "../models/product.model";
+import Category from "../models/category.model";
 
 // To insert Item into the Bucket or CheckList
-export const createItem: RequestHandler = async (req, res, next) => {
+export const insertProduct: RequestHandler = async (req, res, next) => {
   try {
-    const item = (req.body as { item: string }).item;
-    const count = (req.body as { count: number }).count;
-    const newItem = new CheckList({
-      item: item,
-      count: count
-    });
-    const savedItem = await newItem.save();
-    res.status(201).json({
-      message: 'Item Added into bucket',
-      item: savedItem
-    })
+    const fetchedCat = await Category.findById(req.body.categoryId);
+    if(!fetchedCat){
+      throw new Error('Category Not Found');
+    }else{
+      const productName = (req.body as { item: string }).item;
+      const newProduct = new Product({
+        productName: productName,
+        categoryId : req.body.categoryId
+      });
+      const savedItem = await newProduct.save();
+      res.status(201).json({
+        message: 'Product Added',
+        product: {
+          id : savedItem._id,
+          Name : savedItem.productName,
+          category : {
+            name : fetchedCat.category,
+            id : fetchedCat._id
+          }
+        },
+        request : {
+          type : 'GET',
+          url : 'http://localhost:3000/product/'+savedItem._id
+        } 
+      })
+    }
+    
   } catch (error) {
     res.status(500).json({ message: error.message })
   }
 }
 
 // Get all the items from Check List
-export const getItems: RequestHandler = async (req, res, next) => {
+export const getProducts: RequestHandler = async (req, res, next) => {
   try {
-    const items = await CheckList.find();
+    const items = await Product.find().select('productName id categoryId').populate('categoryId');
     if (items == null) {
       throw new Error('List is Empty');
     } else {
       const response: Object = {
         Total_items: items.length,
-        items: items.map(item => {
+        Products: items.map(item => {
           return {
-            item: item.item,
-            count: item.count,
+            item: item.productName,
             id: item._id,
+            category : item.categoryId,
             request: {
               type: 'GET',
-              url: 'http://localhost:3000/' + item._id
+              url: 'http://localhost:3000/product/' + item._id
             },
             requestType: {
               type: 'POST',
-              url: 'http://localhost:3000/',
+              url: 'http://localhost:3000/product/',
               body: {
                 item: {
                   type: 'String',
                   details: 'Name of an Item'
-                },
-                count: {
-                  type: 'Number',
-                  details: 'Total number of Items'
                 }
               }
             }
@@ -64,11 +77,11 @@ export const getItems: RequestHandler = async (req, res, next) => {
   }
 }
 
-//Get an individual Item from check list from its id
-export const getItem: RequestHandler = async (req, res, next) => {
+//Get an individual Product from Products by its id
+export const getProduct: RequestHandler = async (req, res, next) => {
   try {
     const id = (req.params as { id: string }).id;
-    const item = await CheckList.findById(id).select('item count');
+    const item = await Product.findById(id).select('item count').populate('categoryId');
     if (!item) {
       throw new Error('Enter Valid Id');
     } else {
@@ -76,7 +89,7 @@ export const getItem: RequestHandler = async (req, res, next) => {
         item: item,
         request: {
           type: 'GET',
-          url: 'http://localhost:3000/checkList'
+          url: 'http://localhost:3000/product'
         }
       }
       res.status(200).json(response);
@@ -90,32 +103,30 @@ export const getItem: RequestHandler = async (req, res, next) => {
 
 
 //update any item information in check list
-export const updateItem: RequestHandler = async (req, res, next) => {
+export const updateProduct: RequestHandler = async (req, res, next) => {
   try {
     const id = (req.params as { id: string }).id;
     const item = (req.body as { item: string }).item;
-    const count = (req.body as { count: number }).count;
-    const listItem = await CheckList.findById(id).select('item count')
-    if (item == null || count == null) {
+    const listItem = await Product.findById(id).select('item')
+    if (item == null) {
       throw new Error('Can not accept null values')
     } else if (!listItem) {
       throw new Error('No Item exist with this id')
     } else {
-      const updatedItem = await CheckList.updateOne(
+      const updatedItem = await Product.updateOne(
         {
           _id: id
         },
         {
           $set: {
-            item: item,
-            count: count
+            productName: item
           }
         });
       res.json({
         message: 'Product Updated',
         request: {
           type: 'GET',
-          url: 'http://localhost:3000/checkList/' + id
+          url: 'http://localhost:3000/product/' + id
         }
       });
     }
@@ -128,21 +139,21 @@ export const updateItem: RequestHandler = async (req, res, next) => {
 
 //Delete any particular item from the check list
 
-export const deleteItem: RequestHandler = async (req, res, next) => {
+export const deleteProduct: RequestHandler = async (req, res, next) => {
   try {
     const id = (req.params as { id: string }).id;
-    const listItem = await CheckList.findById(id).select('item count')
+    const listItem = await Product.findById(id).select('item count')
     console.log(listItem);
     if (listItem == null) {
       throw new Error('No item Exist by this id');
     } else {
-      const deletedItem = await CheckList.deleteOne({ _id: id });
+      const deletedItem = await Product.deleteOne({ _id: id });
       console.log(deletedItem);
       const response = {
         message: 'Item removed from List',
         request: {
           type: 'POST',
-          url: 'http://localhost:3000/checkList',
+          url: 'http://localhost:3000/product',
           body: {
             item: 'string',
             count: 'number'
